@@ -1,0 +1,19 @@
+name = "aethoria-2d"
+compatibility_date = "2025-01-01"
+pages_build_output_dir = "./dist"
+
+[env.production]
+name = "aethoria-2d"
+routes = [
+  { pattern = "^/api/.*", zone_name = "api_workers" },
+  { pattern = "^/ws.*", zone_name = "ws_workers" }
+]
+
+[[r2_buckets]]
+binding = "GAME_ASSETS"
+bucket_name = "aethoria-game-assets"
+
+[[durable_objects.bindings]]
+name = "WORLD_STATE"
+class_name = "WorldState"
+script_name = "aethoria-2d"

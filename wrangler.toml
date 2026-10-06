@@ -1,19 +1,21 @@
-name = "aethoria-2d"
+name = "aethoria"
+type = "javascript"
+account_id = ""
+workers_dev = true
+route = ""
+zone_id = ""
 compatibility_date = "2025-01-01"
-pages_build_output_dir = "./dist"
+compatibility_flags = ["nodejs_compat"]
 
 [env.production]
-name = "aethoria-2d"
+name = "aethoria"
 routes = [
-  { pattern = "^/api/.*", zone_name = "api_workers" },
-  { pattern = "^/ws.*", zone_name = "ws_workers" }
+  { pattern = "aethoria.pages.dev/*", zone_name = "" }
 ]
+
+[[analytics_engine_datasets]]
+binding = "ANALYTICS"
 
 [[r2_buckets]]
 binding = "GAME_ASSETS"
-bucket_name = "aethoria-game-assets"
-
-[[durable_objects.bindings]]
-name = "WORLD_STATE"
-class_name = "WorldState"
-script_name = "aethoria-2d"
+bucket_name = "aethoria-assets"

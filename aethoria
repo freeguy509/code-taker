@@ -1,0 +1,545 @@
+{
+  "name": "@figma/my-make-file",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite",
+    "start": "vite build && node server.cjs"
+  },
+  "dependencies": {
+    "@emotion/react": "11.14.0",
+    "@emotion/styled": "11.14.1",
+    "@mui/icons-material": "7.3.5",
+    "@mui/material": "7.3.5",
+    "@popperjs/core": "2.11.8",
+    "@radix-ui/react-accordion": "1.2.3",
+    "@radix-ui/react-alert-dialog": "1.1.6",
+    "@radix-ui/react-aspect-ratio": "1.1.2",
+    "@radix-ui/react-avatar": "1.1.3",
+    "@radix-ui/react-checkbox": "1.1.4",
+    "@radix-ui/react-collapsible": "1.1.3",
+    "@radix-ui/react-context-menu": "2.2.6",
+    "@radix-ui/react-dialog": "1.1.6",
+    "@radix-ui/react-dropdown-menu": "2.1.6",
+    "@radix-ui/react-hover-card": "1.1.6",
+    "@radix-ui/react-label": "2.1.2",
+    "@radix-ui/react-menubar": "1.1.6",
+    "@radix-ui/react-navigation-menu": "1.2.5",
+    "@radix-ui/react-popover": "1.1.6",
+    "@radix-ui/react-progress": "1.1.2",
+    "@radix-ui/react-radio-group": "1.2.3",
+    "@radix-ui/react-scroll-area": "1.2.3",
+    "@radix-ui/react-select": "2.1.6",
+    "@radix-ui/react-separator": "1.1.2",
+    "@radix-ui/react-slider": "1.2.3",
+    "@radix-ui/react-slot": "1.1.2",
+    "@radix-ui/react-switch": "1.1.3",
+    "@radix-ui/react-tabs": "1.1.3",
+    "@radix-ui/react-toggle": "1.1.2",
+    "@radix-ui/react-toggle-group": "1.1.2",
+    "@radix-ui/react-tooltip": "1.1.8",
+    "canvas-confetti": "1.9.4",
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "cmdk": "1.1.1",
+    "date-fns": "3.6.0",
+    "embla-carousel-react": "8.6.0",
+    "input-otp": "1.4.2",
+    "lucide-react": "0.487.0",
+    "motion": "12.23.24",
+    "next-themes": "0.4.6",
+    "react-day-picker": "8.10.1",
+    "react-dnd": "16.0.1",
+    "react-dnd-html5-backend": "16.0.1",
+    "react-hook-form": "7.55.0",
+    "react-popper": "2.3.0",
+    "react-resizable-panels": "2.1.7",
+    "react-responsive-masonry": "2.7.1",
+    "react-router": "7.13.0",
+    "react-slick": "0.31.0",
+    "recharts": "2.15.2",
+    "sonner": "2.0.3",
+    "tailwind-merge": "3.2.0",
+    "tw-animate-css": "1.3.8",
+    "vaul": "1.1.2",
+    "ws": "8.18.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "4.1.12",
+    "@vitejs/plugin-react": "4.7.0",
+    "tailwindcss": "4.1.12",
+    "vite": "6.3.5"
+  },
+  "peerDependencies": {
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    }
+  },
+  "pnpm": {
+    "overrides": {
+      "vite": "6.3.5"
+    }
+  }
+}
+
+# Aethoria — Web Deployment Foundation
+
+This version treats `index.html` as the public web entry point. Players should eventually receive a URL; they should not run a batch file or open the source `index.html` directly.
+
+## Local production test
+
+```bash
+npm install
+npm run build
+npm start
+```
+
+Then open `http://localhost:4173/`.
+
+## Important
+
+- `index.html` is the web entry and contains a visible loading fallback.
+- Vite turns the source app into `dist/` during `npm run build`.
+- `server.cjs` serves `dist/` and the WebSocket endpoint.
+- The current landing screen is intentionally the first milestone. Real Google/email authentication should be connected to a real auth provider rather than simulated in the browser.
+- The game should eventually be deployed behind HTTPS on a free/low-cost web host; a custom domain can be connected later without rebuilding the application.
+
+const http = require('http');
+const fs = require('fs');
+const path = require('path');
+const { WebSocketServer } = require('ws');
+
+const PORT = Number(process.env.PORT || 4173);
+const ROOT = __dirname;
+const DIST = path.join(ROOT, 'dist');
+const sessions = new Map();
+
+function id() { return Math.random().toString(36).slice(2, 10).toUpperCase(); }
+function snapshot(s) { return { players: s.players, messages: s.messages.slice(-30) }; }
+function broadcast(s) {
+  const data = JSON.stringify({ type: 'snapshot', snapshot: snapshot(s) });
+  for (const ws of s.clients) if (ws.readyState === 1) ws.send(data);
+}
+function getOrCreateSession(sessionId) {
+  if (!sessions.has(sessionId)) sessions.set(sessionId, { id: sessionId, players: {}, messages: [] , clients: new Set() });
+  return sessions.get(sessionId);
+}
+
+const server = http.createServer((req, res) => {
+  const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+  if (url.pathname === '/api/health') {
+    res.writeHead(200, {'content-type':'application/json'}); return res.end(JSON.stringify({ok:true, sessions:sessions.size}));
+  }
+  if (url.pathname === '/api/sessions' && req.method === 'POST') {
+    let body=''; req.on('data', c => body += c); req.on('end', () => { let requested=''; try { requested=JSON.parse(body).id || ''; } catch {} const sid = /^[A-Z0-9]{8}$/.test(requested) ? requested : id(); getOrCreateSession(sid); res.writeHead(201, {'content-type':'application/json'}); res.end(JSON.stringify({ id:sid })); }); return;
+  }
+  if (url.pathname === '/api/sessions' && req.method === 'GET') {
+    const list = [...sessions.values()].map(s => ({id:s.id, players:Object.keys(s.players).length}));
+    res.writeHead(200, {'content-type':'application/json'}); return res.end(JSON.stringify(list));
+  }
+  // Production/static serving. Build with `npm run build` first.
+  let file = url.pathname === '/' ? path.join(DIST, 'index.html') : path.join(DIST, url.pathname.replace(/^\//,''));
+  if (!file.startsWith(DIST)) return res.writeHead(403).end();
+  if (!fs.existsSync(file)) file = path.join(DIST, 'index.html');
+  if (!fs.existsSync(file)) return res.writeHead(503).end('Run npm run build first.');
+  const ext = path.extname(file);
+  const types = {'.html':'text/html','.js':'text/javascript','.css':'text/css','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.webp':'image/webp'};
+  res.writeHead(200, {'content-type': types[ext] || 'application/octet-stream', 'cache-control': ext === '.html' ? 'no-cache' : 'public, max-age=31536000, immutable'});
+  fs.createReadStream(file).pipe(res);
+});
+
+const wss = new WebSocketServer({ noServer:true });
+server.on('upgrade', (req, socket, head) => {
+  const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+  if (url.pathname !== '/ws') return socket.destroy();
+  const sessionId = url.searchParams.get('session');
+  if (!sessionId) return socket.destroy();
+  wss.handleUpgrade(req, socket, head, ws => { ws.sessionId = sessionId; wss.emit('connection', ws); });
+});
+
+wss.on('connection', ws => {
+  const s = getOrCreateSession(ws.sessionId); s.clients.add(ws);
+  ws.send(JSON.stringify({type:'snapshot', snapshot:snapshot(s)}));
+  ws.on('message', raw => {
+    try {
+      const msg = JSON.parse(raw.toString());
+      if (msg.type === 'join' && msg.player?.id) s.players[msg.player.id] = {...msg.player, lastSeen:Date.now()};
+      if (msg.type === 'update' && msg.player?.id) s.players[msg.player.id] = {...msg.player, lastSeen:Date.now()};
+      if (msg.type === 'leave' && msg.playerId) delete s.players[msg.playerId];
+      if (msg.type === 'message' && msg.text) s.messages.push({id:Date.now().toString(36), text:String(msg.text), type:msg.messageType || 'info', timestamp:Date.now()});
+      broadcast(s);
+    } catch {}
+  });
+  ws.on('close', () => {
+    s.clients.delete(ws);
+    // Do not immediately delete a player: reconnects are allowed. Stale players are pruned below.
+  });
+});
+
+setInterval(() => {
+  const cutoff = Date.now() - 20000;
+  for (const s of sessions.values()) {
+    for (const [pid,p] of Object.entries(s.players)) if (p.lastSeen < cutoff) delete s.players[pid];
+    broadcast(s);
+  }
+}, 5000);
+
+server.listen(PORT, '0.0.0.0', () => console.log(`Aethoria server running on port ${PORT}`));
+
+import { defineConfig } from 'vite'
+import path from 'path'
+import tailwindcss from '@tailwindcss/vite'
+import react from '@vitejs/plugin-react'
+
+
+function figmaAssetResolver() {
+  return {
+    name: 'figma-asset-resolver',
+    resolveId(id) {
+      if (id.startsWith('figma:asset/')) {
+        const filename = id.replace('figma:asset/', '')
+        return path.resolve(__dirname, 'src/assets', filename)
+      }
+    },
+  }
+}
+
+export default defineConfig({
+  base: './',
+  plugins: [
+    figmaAssetResolver(),
+    // The React and Tailwind plugins are both required for Make, even if
+    // Tailwind is not being actively used – do not remove them
+    react(),
+    tailwindcss(),
+  ],
+  resolve: {
+    alias: {
+      // Alias @ to the src directory
+      '@': path.resolve(__dirname, './src'),
+    },
+  },
+
+  // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
+  assetsInclude: ['**/*.svg', '**/*.csv'],
+})
+
+/* KEEP_IN_SYNC(fullscreen/resources/figmake/shadcn/globals.css) */
+
+:root {
+  --font-size: 16px;
+  --background: #ffffff;
+  --foreground: oklch(0.145 0 0);
+  --card: #ffffff;
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: #030213;
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.95 0.0058 264.53);
+  --secondary-foreground: #030213;
+  --muted: #ececf0;
+  --muted-foreground: #717182;
+  --accent: #e9ebef;
+  --accent-foreground: #030213;
+  --destructive: #d4183d;
+  --destructive-foreground: #ffffff;
+  --border: rgba(0, 0, 0, 0.1);
+  --input: transparent;
+  --input-background: #f3f3f5;
+  --switch-background: #cbced4;
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: #030213;
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.145 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.145 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.985 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.396 0.141 25.723);
+  --destructive-foreground: oklch(0.637 0.237 25.331);
+  --border: oklch(0.269 0 0);
+  --input: oklch(0.269 0 0);
+  --ring: oklch(0.439 0 0);
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(0.269 0 0);
+  --sidebar-ring: oklch(0.439 0 0);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-input-background: var(--input-background);
+  --color-switch-background: var(--switch-background);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#080810" />
+    <meta name="description" content="Aethoria — Eternal Realms fantasy RPG." />
+    <title>Aethoria — Eternal Realms</title>
+    <style>
+      html, body, #root { min-height: 100%; margin: 0; }
+      body { background: #080810; color: #e8d5a3; }
+      #aethoria-boot { min-height: 100vh; display: grid; place-items: center; background: radial-gradient(circle at 50% 35%, #171126 0%, #080810 58%, #05050a 100%); font-family: Georgia, serif; }
+      #aethoria-boot .panel { width: min(720px, calc(100% - 40px)); padding: 48px 28px; text-align: center; border: 1px solid rgba(196,146,10,.35); background: rgba(14,14,26,.94); box-shadow: 0 0 60px rgba(124,58,237,.12); }
+      #aethoria-boot h1 { margin: 0; letter-spacing: .16em; color: #c4920a; font-size: clamp(30px, 7vw, 64px); }
+      #aethoria-boot p { color: #a09070; font-size: 18px; }
+      #aethoria-boot .line { width: 180px; height: 2px; margin: 24px auto; background: #c4920a; opacity: .65; }
+      #aethoria-boot .status { color: #6b5f4e; font-size: 14px; }
+      #aethoria-boot.error .status { color: #f87171; }
+      noscript { color: #f87171; }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <div id="aethoria-boot" aria-label="Loading Aethoria">
+        <div class="panel">
+          <h1>AETHORIA</h1>
+          <div class="line"></div>
+          <p>ETERNAL REALMS</p>
+          <div class="status" id="boot-status">Opening the gates of Aethoria…</div>
+        </div>
+      </div>
+    </div>
+    <noscript>Aethoria requires JavaScript to be enabled.</noscript>
+    <script>
+      window.setTimeout(function () {
+        var status = document.getElementById('boot-status');
+        var root = document.getElementById('root');
+        if (status && root && root.querySelector('#aethoria-boot')) {
+          status.textContent = 'Still loading. If this remains, the web server did not deliver the game files.';
+        }
+      }, 8000);
+    </script>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+
+packages:
+  - '.'
+/**
+ * PostCSS Configuration
+ *
+ * Tailwind CSS v4 (via @tailwindcss/vite) automatically sets up all required
+ * PostCSS plugins — you do NOT need to include `tailwindcss` or `autoprefixer` here.
+ *
+ * This file only exists for adding additional PostCSS plugins, if needed.
+ * For example:
+ *
+ * import postcssNested from 'postcss-nested'
+ * export default { plugins: [postcssNested()] }
+ *
+ * Otherwise, you can leave this file empty.
+ */
+export default {}
+
+# Eternal Realms — Aethoria 2D
+
+## Easiest way to start on Windows
+
+Double-click **`START_AETHORIA.bat`**.
+
+The launcher will:
+1. Check for Node.js.
+2. Install the game dependencies if needed.
+3. Build the Vite game.
+4. Start the Aethoria server and WebSocket world.
+5. Open **Microsoft Edge** at `http://localhost:4173/`.
+
+## Important
+
+**Do not double-click `index.html` to play.** The source `index.html` is a Vite application entry point and needs an HTTP server. Opening it as `file://.../index.html` cannot start the React application correctly.
+
+If you accidentally open `index.html` directly, Aethoria now shows an explanation instead of a blank page.
+
+## Manual start
+
+```bash
+npm install
+npm start
+```
+
+Then open:
+
+```text
+http://localhost:4173/
+```
+
+`npm start` builds the game before starting the production server.
+
+## Shared world
+
+The production server hosts the shared Aethoria WebSocket world at `/ws`. Invite links use `?join=XXXXXXXX`. Players connected to the same server session can see one another.
+
+## Development
+
+For UI development only:
+
+```bash
+npm run dev
+```
+
+AETHORIA - CHROME LAUNCHER
+
+1. Install Node.js LTS and Google Chrome.
+2. Double-click START_AETHORIA.bat.
+3. The launcher installs dependencies, builds the game, starts the server, and opens Google Chrome.
+4. Do NOT double-click index.html.
+
+LOCAL ADDRESS:
+http://localhost:4173/
+
+PUBLIC SERVER / HTTPS:
+The included server listens on HTTP port 4173. Do not expose that port directly to the Internet if you want a protected public game.
+For a public deployment, put an HTTPS reverse proxy (for example Nginx or Caddy) in front of it, terminate TLS there, and proxy both normal HTTP traffic and WebSocket traffic (/ws) to localhost:4173.
+
+The supplied public IP 143.244.207.157 was not reachable on TCP/443 when checked, so no claim is made that HTTPS is currently configured there.
+
+@echo off
+setlocal
+cd /d "%~dp0"
+
+echo =============================================
+echo        AETHORIA - ETERNAL REALMS
+echo =============================================
+echo.
+
+where node >nul 2>nul
+if errorlevel 1 (
+  echo Node.js was not found.
+  echo Please install Node.js LTS, then run this launcher again.
+  pause
+  exit /b 1
+)
+
+if not exist node_modules\ (
+  echo Installing game dependencies. This may take a few minutes...
+  call npm install
+  if errorlevel 1 (
+    echo.
+    echo Dependency installation failed. Please run npm install manually.
+    pause
+    exit /b 1
+  )
+)
+
+echo Building Aethoria...
+call npm run build
+if errorlevel 1 (
+  echo.
+  echo The game build failed. The window will stay open so the error can be read.
+  pause
+  exit /b 1
+)
+
+echo Starting the Aethoria server...
+start "Aethoria Server" /min cmd /c "cd /d "%~dp0" && node server.cjs"
+
+timeout /t 2 /nobreak >nul
+
+echo Opening Aethoria in Google Chrome...
+set "CHROME_EXE="
+if exist "%ProgramFiles%\Google\Chrome\Application\chrome.exe" set "CHROME_EXE=%ProgramFiles%\Google\Chrome\Application\chrome.exe"
+if not defined CHROME_EXE if exist "%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe" set "CHROME_EXE=%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe"
+if not defined CHROME_EXE if exist "%LocalAppData%\Google\Chrome\Application\chrome.exe" set "CHROME_EXE=%LocalAppData%\Google\Chrome\Application\chrome.exe"
+if defined CHROME_EXE (
+  start "" "%CHROME_EXE%" "http://localhost:4173/"
+) else (
+  echo Google Chrome was not found.
+  echo Please install Chrome, then open http://localhost:4173/
+  start "" "http://localhost:4173/"
+)
+
+echo.
+echo Aethoria is running at http://localhost:4173/
+echo You can close this launcher window.
+exit /b 0
+
+This Figma Make file includes components from [shadcn/ui](https://ui.shadcn.com/) used under [MIT license](https://github.com/shadcn-ui/ui/blob/main/LICENSE.md).
+
+This Figma Make file includes photos from [Unsplash](https://unsplash.com) used under [license](https://unsplash.com/license).

@@ -1,27 +1,17 @@
-# Realm Expansion and NPC Combat Integration
+# Realm identity, NPC combat, equipment and power pools
 
-## What this module adds
+## Player-selected regional realms
 
-- `src/types.ts` defines a formal optional equipment schema with named slots, rarity, and combat stats. Existing characters without equipment continue to load.
-- `src/content/kingdom-technology.ts` describes five original kingdom visual identities and mixes medieval, murim, steampunk, biopunk, dieselpunk, and arcane technologies. It records race affinities as cultural patterns, not restrictions on character selection.
-- The same catalog documents aura, mana, qi, energy, and faith as separate setting disciplines.
-- `CombatGameApp.renderGame()` calls the existing game renderer first, then adds a kingdom/culture directory and duel buttons for named NPCs. Existing world map, chat, and inventory are retained.
-- Practice duels reuse the combat engine and NPC combat profiles. Their modest rewards are explicitly described as practice rewards; they do not imply NPC death or change world lore.
-- Equipment totals are read from `player.equipment` by slot, while the combat engine still accepts legacy array-shaped equipment.
+Aethoria offers a set of fictional campaign regions inspired by many histories, not nationality-based content assignment. Server location is a latency choice; campaign culture is a separate player choice. Locale can only offer an optional suggestion, never silently change a character or restrict content. The packs are original concepts and any direct use of living cultures, sacred practices or Indigenous knowledge requires research, consultation and permission.
 
-## Equipment example
+## Five combat disciplines
 
-```ts
-const player = {
-  // ...existing player properties
-  equipment: {
-    mainHand: { id: 'wayfarer-blade', name: 'Wayfarer Blade', slot: 'mainHand', rarity: 'common', attack: 4, skillPower: 1 },
-    chest: { id: 'patched-coat', name: 'Patched Traveler Coat', slot: 'chest', rarity: 'common', defense: 3 },
-  },
-  resources: { aura: 20, maxAura: 20, mana: 70, maxMana: 70, qi: 15, maxQi: 15, energy: 10, maxEnergy: 10, faith: 5, maxFaith: 5 },
-}
-```
+Aura, mana, qi, energy and faith are separate pools. Each skill declares the pool it uses and its cost. Starter class mapping: Mage and Arcanist use mana; Warrior uses aura; Ranger uses energy; Assassin uses qi; Guardian uses faith. Race contributes modest starting affinity, but never locks a class or resource. Pool values and balance remain editable data.
 
-## Current boundaries
+## Equipment and NPCs
 
-The existing player skill engine still spends MP for combat abilities; the additional power pools are currently modeled and displayed when present, but class skills need a follow-up migration to consume the relevant pool. The browser prototype's random combat must move to a trusted server before multiplayer PvP or valuable shared rewards. Kingdom entries currently provide art direction and lore data rather than rendered 3D assets.
+Equipped item slots provide attack, defense and skill-power bonuses. Named characters and monsters can have their own combat profiles and abilities. NPC duel/quest interactions must choose the appropriate consequence (practice duel, surrender, capture, or story defeat); a sparring fight does not imply a death or world-event milestone.
+
+## Multiplayer note
+
+Regional endpoint labels are configuration/content only until deployed servers exist. Combat, inventory, and purchases should be validated and persisted server-side. Do not use client locale or geolocation to decide a player's culture, race, political interests, or content access.

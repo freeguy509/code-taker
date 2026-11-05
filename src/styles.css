@@ -1,9 +1,20 @@
-/* Combat screen additions; retain the existing visual system around them. */
-.combat-equipment { max-width: 960px; margin: 16px auto; padding: 12px 16px; border: 1px solid rgba(215,182,111,.22); border-radius: 9px; color: #bfc5d4; background: rgba(13,19,34,.78); font-size: .82rem; }
-.combat-controls .skill-action { display: grid; gap: 4px; min-width: 155px; text-align: left; }
-.skill-action small { color: #b9c3df; font-size: .7rem; }
-.skill-action:disabled { filter: grayscale(.7); opacity: .48; cursor: not-allowed; }
-.reward-overlay { position: fixed; z-index: 20; inset: 0; display: grid; place-items: center; padding: 20px; background: rgba(3,5,12,.78); backdrop-filter: blur(7px); }
-.reward-dialog { width: min(100%, 480px); padding: 30px; border: 1px solid rgba(215,182,111,.6); border-radius: 16px; color: #f3efe7; background: linear-gradient(145deg,#1b2036,#0b1020); box-shadow: 0 25px 100px #000b, 0 0 45px #9c72e822; }
-.reward-dialog h2 { color: #f1dfb8; font: 500 2rem Georgia,serif; }
-.reward-dialog p:not(.combat-eyebrow) { color: #c1c6d3; line-height: 1.6; }
+/* Realm identity, NPC duels, and additional power-meter visuals. */
+.realm-directory { margin: 18px 0; padding: 18px; border: 1px solid rgba(215,182,111,.32); border-radius: 14px; background: linear-gradient(145deg,rgba(18,25,43,.96),rgba(8,13,25,.96)); }
+.realm-directory h2 { color: #f0dfb8; font: 500 1.5rem Georgia,serif; }
+.realm-directory-heading { display:flex; justify-content:space-between; align-items:center; }
+.kingdom-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:12px; }
+.kingdom-card { padding:15px; border:1px solid rgba(125,155,205,.24); border-radius:10px; background:radial-gradient(ellipse at 90% 0%,rgba(126,91,178,.15),transparent 65%),#0d1424; }
+.kingdom-card h3 { margin:0 0 8px; color:#e4cc94; }
+.kingdom-card p,.realm-note { color:#b5bbca; line-height:1.55; font-size:.84rem; }
+.kingdom-card small { color:#8ed4eb; text-transform:capitalize; }
+.power-strip { display:flex; flex-wrap:wrap; align-items:center; gap:9px; margin:15px 0 25px; padding:12px; border-radius:9px; background:#111a2b; color:#c6cada; }
+.power-strip span { padding:5px 9px; border:1px solid rgba(130,158,219,.28); border-radius:99px; color:#c9b9f4; font-size:.76rem; }
+.npc-duel-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:10px; }
+.npc-duel-card { display:grid; gap:8px; padding:14px; border:1px solid rgba(215,182,111,.3); border-radius:9px; color:#f0e9d8; text-align:left; background:#11182a; cursor:pointer; }
+.npc-duel-card:hover { border-color:#d7b66f; box-shadow:0 0 20px #9c72e822; }
+.npc-duel-card span,.npc-duel-card small { color:#aeb6ca; font-size:.75rem; line-height:1.45; }
+.other-power-meters { margin-top:12px; padding-top:8px; border-top:1px solid #ffffff17; }
+.power-meter-aura { background:linear-gradient(90deg,#ae5bc8,#f1a4ff); }
+.power-meter-qi { background:linear-gradient(90deg,#b77d42,#f3d170); }
+.power-meter-energy { background:linear-gradient(90deg,#428eae,#84e9fa); }
+.power-meter-faith { background:linear-gradient(90deg,#8c79ce,#e3d4ff); }
